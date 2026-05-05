@@ -496,3 +496,267 @@ html, body, #root {
   .stat-row { grid-template-columns: 1fr 1fr; }
   .form-row { grid-template-columns: 1fr; }
 }
+/* ── THEME ── */
+:root {
+  --bg: #0D0D0D;
+  --bg2: #141414;
+  --bg3: #1C1C1C;
+  --border: #2A2A2A;
+  --border2: #333;
+  --text: #F0EDE8;
+  --text2: #888;
+  --text3: #555;
+  --green: #00E87A;
+  --green-dim: rgba(0,232,122,0.08);
+  --red: #FF4D4D;
+  --red-dim: rgba(255,77,77,0.08);
+  --amber: #FFB020;
+  --blue: #4D9EFF;
+}
+
+[data-theme="light"] {
+  --bg: #F7F7F5;
+  --bg2: #FFFFFF;
+  --bg3: #F0F0EE;
+  --border: #E5E5E3;
+  --border2: #D5D5D3;
+  --text: #111110;
+  --text2: #666;
+  --text3: #999;
+  --green-dim: rgba(0,180,90,0.08);
+  --red-dim: rgba(220,50,50,0.08);
+}
+
+/* ── THEME TOGGLE (in app) ── */
+.theme-toggle {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 7px 10px;
+  cursor: pointer;
+  font-size: 15px;
+  transition: background 0.15s;
+  line-height: 1;
+}
+.theme-toggle:hover { background: var(--border); }
+
+/* ── LANDING ── */
+.landing {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+}
+
+.landing-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 48px;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  z-index: 100;
+  backdrop-filter: blur(10px);
+}
+
+.landing-nav-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* HERO */
+.hero {
+  text-align: center;
+  padding: 80px 24px 64px;
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.hero-badge {
+  display: inline-block;
+  font-size: 12px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--border2);
+  color: var(--text2);
+  margin-bottom: 24px;
+  font-family: var(--mono);
+}
+
+.hero-title {
+  font-size: clamp(42px, 8vw, 72px);
+  font-weight: 700;
+  letter-spacing: -2px;
+  line-height: 1.05;
+  margin-bottom: 20px;
+}
+
+.hero-accent { color: var(--green); }
+
+.hero-sub {
+  font-size: 17px;
+  color: var(--text2);
+  line-height: 1.7;
+  max-width: 520px;
+  margin: 0 auto 32px;
+}
+
+.hero-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 48px;
+}
+
+.btn-lg {
+  padding: 14px 28px !important;
+  font-size: 15px !important;
+  border-radius: 10px !important;
+}
+
+.hero-note {
+  font-size: 12px;
+  color: var(--text3);
+  font-family: var(--mono);
+}
+
+.hero-stats {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+  padding: 24px 32px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.hero-stat { text-align: center; }
+.hero-stat-val { display: block; font-size: 28px; font-weight: 700; font-family: var(--mono); color: var(--green); }
+.hero-stat-label { font-size: 11px; color: var(--text3); }
+.hero-stat-div { width: 1px; height: 36px; background: var(--border); }
+
+/* SECTIONS */
+.landing-section {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 72px 24px;
+}
+
+.section-eyebrow {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--green);
+  font-weight: 500;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.section-title {
+  font-size: clamp(24px, 4vw, 36px);
+  font-weight: 700;
+  letter-spacing: -0.8px;
+  margin-bottom: 40px;
+  text-align: center;
+}
+
+/* FEATURES */
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.feature-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  transition: border-color 0.15s, transform 0.15s;
+}
+
+.feature-card:hover {
+  border-color: var(--green);
+  transform: translateY(-2px);
+}
+
+.feature-icon { font-size: 24px; margin-bottom: 12px; }
+.feature-title { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
+.feature-desc { font-size: 13px; color: var(--text2); line-height: 1.6; }
+
+/* TESTIMONIALS */
+.testimonials-section { background: var(--bg2); border-radius: var(--radius); max-width: 100%; padding: 72px 48px; }
+.testimonials-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; max-width: 1000px; margin: 0 auto; }
+
+.testimonial-card {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 22px;
+}
+
+.testimonial-text { font-size: 14px; color: var(--text2); line-height: 1.7; margin-bottom: 16px; font-style: italic; }
+.testimonial-author { display: flex; align-items: center; gap: 10px; }
+.testimonial-avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--green-dim); border: 1px solid var(--green);
+  color: var(--green); font-weight: 700; font-size: 14px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.testimonial-name { font-size: 13px; font-weight: 600; }
+.testimonial-role { font-size: 11px; color: var(--text3); }
+
+/* CTA */
+.cta-section {
+  text-align: center;
+  padding: 80px 24px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+.cta-title { font-size: clamp(24px, 4vw, 36px); font-weight: 700; letter-spacing: -0.8px; margin-bottom: 12px; }
+.cta-sub { font-size: 15px; color: var(--text2); margin-bottom: 28px; line-height: 1.6; }
+
+/* FOOTER */
+.landing-footer {
+  border-top: 1px solid var(--border);
+  padding: 24px 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.footer-tag { font-size: 12px; color: var(--text3); }
+
+/* ── RESPONSIVE LANDING ── */
+@media (max-width: 768px) {
+  .landing-nav { padding: 16px 20px; }
+  .hero { padding: 48px 20px 40px; }
+  .hero-stats { gap: 20px; padding: 16px 20px; flex-wrap: wrap; }
+  .testimonials-section { padding: 48px 20px; }
+  .landing-footer { padding: 20px; flex-direction: column; text-align: center; }
+}
+
+/* ── APP THEME TOGGLE (sidebar + mobile) ── */
+.app-theme-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text2);
+  font-family: var(--font);
+  font-size: 12px;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 10px;
+  transition: all 0.15s;
+}
+.app-theme-btn:hover { background: var(--bg3); color: var(--text); }
