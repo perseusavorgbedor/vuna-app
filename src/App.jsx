@@ -1,21 +1,35 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Income from './pages/Income';
 import Expenses from './pages/Expenses';
 import Goals from './pages/Goals';
+import Landing from './pages/Landing';
+import './landing.css';
 import { loadData, saveData } from './utils/storage';
 
 export default function App() {
   const [data, setData] = useState(() => loadData());
+  const [theme, setTheme] = useState(() => localStorage.getItem('vuna_theme') || 'dark');
+  const [accent, setAccent] = useState(() => localStorage.getItem('vuna_accent') || 'green');
 
-  function persist(next) {
-    setData(next);
-    saveData(next);
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    document.documentElement.setAttribute('data-accent', accent);
+  }, [theme, accent]);
+
+  function toggleTheme() {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    setTheme(next);
+    localStorage.setItem('vuna_theme', next);
   }
 
-  // add income or expense
+  function handleAccent(color) {
+    setAccent(color);
+    localStorage.setItem('vuna_accent', color);
+  }
+
   const handleAdd = useCallback((type, entry) => {
     setData(prev => {
       const next = type === 'income'
@@ -26,7 +40,6 @@ export default function App() {
     });
   }, []);
 
-  // delete income or expense
   const handleDelete = useCallback((type, id) => {
     setData(prev => {
       const next = type === 'income'
@@ -37,7 +50,6 @@ export default function App() {
     });
   }, []);
 
-  // add a new goal
   const handleAddGoal = useCallback((goal) => {
     setData(prev => {
       const next = { ...prev, goals: [...prev.goals, goal] };
@@ -46,7 +58,6 @@ export default function App() {
     });
   }, []);
 
-  // delete a goal
   const handleDeleteGoal = useCallback((id) => {
     setData(prev => {
       const next = { ...prev, goals: prev.goals.filter(g => g.id !== id) };
@@ -55,7 +66,6 @@ export default function App() {
     });
   }, []);
 
-  // add savings to a goal
   const handleAddToGoal = useCallback((id, amount) => {
     setData(prev => {
       const next = {
@@ -69,7 +79,6 @@ export default function App() {
     });
   }, []);
 
-  // switch currency
   const handleCurrency = useCallback((currency) => {
     setData(prev => {
       const next = { ...prev, currency };
@@ -80,27 +89,39 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <Layout currency={data.currency} setCurrency={handleCurrency}>
-        <Routes>
-          <Route path="/" element={
+      <Routes>
+        {/* Landing page — no sidebar */}
+        <Route path="/" element={
+          <Landing theme={theme} toggleTheme={toggleTheme} accent={accent} setAccent={handleAccent} />
+        } />
+
+        {/* App pages — inside Layout */}
+        <Route path="/dashboard" element={
+          <Layout currency={data.currency} setCurrency={handleCurrency} theme={theme} toggleTheme={toggleTheme} accent={accent} setAccent={handleAccent}>
             <Dashboard data={data} onDelete={handleDelete} />
-          } />
-          <Route path="/income" element={
+          </Layout>
+        } />
+        <Route path="/income" element={
+          <Layout currency={data.currency} setCurrency={handleCurrency} theme={theme} toggleTheme={toggleTheme} accent={accent} setAccent={handleAccent}>
             <Income data={data} onAdd={handleAdd} onDelete={handleDelete} />
-          } />
-          <Route path="/expenses" element={
+          </Layout>
+        } />
+        <Route path="/expenses" element={
+          <Layout currency={data.currency} setCurrency={handleCurrency} theme={theme} toggleTheme={toggleTheme} accent={accent} setAccent={handleAccent}>
             <Expenses data={data} onAdd={handleAdd} onDelete={handleDelete} />
-          } />
-          <Route path="/goals" element={
+          </Layout>
+        } />
+        <Route path="/goals" element={
+          <Layout currency={data.currency} setCurrency={handleCurrency} theme={theme} toggleTheme={toggleTheme} accent={accent} setAccent={handleAccent}>
             <Goals
               data={data}
               onAdd={handleAddGoal}
               onDelete={handleDeleteGoal}
               onAddToGoal={handleAddToGoal}
             />
-          } />
-        </Routes>
-      </Layout>
+          </Layout>
+        } />
+      </Routes>
     </BrowserRouter>
   );
 }
