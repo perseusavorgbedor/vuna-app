@@ -1,29 +1,24 @@
 const KEY = 'vuna_v1';
 
 export const SYMBOLS = { GHS: '₵', NGN: '₦', KES: 'KSh', USD: '$' };
-
 export const CURRENCIES = ['GHS', 'NGN', 'KES', 'USD'];
-
 export const CATEGORIES = [
   'Food & Drinks', 'Transport', 'Tools & Software',
   'Rent & Bills', 'Data & Airtime', 'Health',
   'Entertainment', 'Education', 'Other',
 ];
-
 export const INCOME_SOURCES = [
   'Freelance Project', 'Design Work', 'Dev Work', 'Writing',
   'Consulting', 'Mobile Money', 'Bank Transfer', 'Cash', 'Other',
 ];
 
-const DEFAULTS = { currency: 'GHS', income: [], expenses: [], goals: [] };
+const DEFAULTS = { currency: 'GHS', income: [], expenses: [], goals: [], recurring: [] };
 
 export function loadData() {
   try {
     const raw = localStorage.getItem(KEY);
     return raw ? { ...DEFAULTS, ...JSON.parse(raw) } : { ...DEFAULTS };
-  } catch {
-    return { ...DEFAULTS };
-  }
+  } catch { return { ...DEFAULTS }; }
 }
 
 export function saveData(data) {
@@ -36,19 +31,11 @@ export function uid() {
 
 export function fmt(amount, currency) {
   const sym = SYMBOLS[currency] || '₵';
-  return sym + Number(amount).toLocaleString('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+  return sym + Number(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-export function todayISO() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-export function monthKey(iso) {
-  return iso.slice(0, 7);
-}
+export function todayISO() { return new Date().toISOString().slice(0, 10); }
+export function monthKey(iso) { return iso.slice(0, 7); }
 
 export function thisMonth() {
   const d = new Date();
@@ -61,14 +48,6 @@ export function lastMonth() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
 
-export function totalFor(arr, mk, currency) {
-  return arr
-    .filter(e => monthKey(e.date) === mk && e.currency === currency)
-    .reduce((s, e) => s + Number(e.amount), 0);
-}
-
 export function totalAllCurrencies(arr, mk) {
-  return arr
-    .filter(e => monthKey(e.date) === mk)
-    .reduce((s, e) => s + Number(e.amount), 0);
+  return arr.filter(e => monthKey(e.date) === mk).reduce((s, e) => s + Number(e.amount), 0);
 }

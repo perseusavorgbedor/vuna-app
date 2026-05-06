@@ -12,7 +12,7 @@ import { loadData, saveData } from './utils/storage';
 export default function App() {
   const [data, setData] = useState(() => loadData());
   const [theme, setTheme] = useState(() => localStorage.getItem('vuna_theme') || 'dark');
-  const [accent, setAccent] = useState(() => localStorage.getItem('vuna_accent') || 'green');
+  const [accent, setAccentState] = useState(() => localStorage.getItem('vuna_accent') || 'green');
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -26,7 +26,7 @@ export default function App() {
   }
 
   function handleAccent(color) {
-    setAccent(color);
+    setAccentState(color);
     localStorage.setItem('vuna_accent', color);
   }
 
@@ -35,8 +35,7 @@ export default function App() {
       const next = type === 'income'
         ? { ...prev, income: [...prev.income, entry] }
         : { ...prev, expenses: [...prev.expenses, entry] };
-      saveData(next);
-      return next;
+      saveData(next); return next;
     });
   }, []);
 
@@ -45,81 +44,57 @@ export default function App() {
       const next = type === 'income'
         ? { ...prev, income: prev.income.filter(e => e.id !== id) }
         : { ...prev, expenses: prev.expenses.filter(e => e.id !== id) };
-      saveData(next);
-      return next;
+      saveData(next); return next;
     });
   }, []);
 
   const handleAddGoal = useCallback((goal) => {
-    setData(prev => {
-      const next = { ...prev, goals: [...prev.goals, goal] };
-      saveData(next);
-      return next;
-    });
+    setData(prev => { const next = { ...prev, goals: [...prev.goals, goal] }; saveData(next); return next; });
   }, []);
 
   const handleDeleteGoal = useCallback((id) => {
-    setData(prev => {
-      const next = { ...prev, goals: prev.goals.filter(g => g.id !== id) };
-      saveData(next);
-      return next;
-    });
+    setData(prev => { const next = { ...prev, goals: prev.goals.filter(g => g.id !== id) }; saveData(next); return next; });
   }, []);
 
   const handleAddToGoal = useCallback((id, amount) => {
     setData(prev => {
-      const next = {
-        ...prev,
-        goals: prev.goals.map(g =>
-          g.id === id ? { ...g, saved: Number(g.saved) + amount } : g
-        ),
-      };
-      saveData(next);
-      return next;
+      const next = { ...prev, goals: prev.goals.map(g => g.id === id ? { ...g, saved: Number(g.saved) + amount } : g) };
+      saveData(next); return next;
     });
   }, []);
 
   const handleCurrency = useCallback((currency) => {
-    setData(prev => {
-      const next = { ...prev, currency };
-      saveData(next);
-      return next;
-    });
+    setData(prev => { const next = { ...prev, currency }; saveData(next); return next; });
   }, []);
+
+  const handleAddRecurring = useCallback((item) => {
+    setData(prev => { const next = { ...prev, recurring: [...(prev.recurring || []), item] }; saveData(next); return next; });
+  }, []);
+
+  const handleDeleteRecurring = useCallback((id) => {
+    setData(prev => { const next = { ...prev, recurring: prev.recurring.filter(r => r.id !== id) }; saveData(next); return next; });
+  }, []);
+
+  const sharedProps = { theme, toggleTheme, accent, setAccent: handleAccent };
+  const layoutProps = { currency: data.currency, setCurrency: handleCurrency, ...sharedProps };
 
   return (
     <BrowserRouter>
       <Routes>
-        {/* Landing page — no sidebar */}
-        <Route path="/" element={
-          <Landing theme={theme} toggleTheme={toggleTheme} accent={accent} setAccent={handleAccent} />
-        } />
-
-        {/* App pages — inside Layout */}
+        <Route path="/" element={<Landing {...sharedProps} />} />
         <Route path="/dashboard" element={
-          <Layout currency={data.currency} setCurrency={handleCurrency} theme={theme} toggleTheme={toggleTheme} accent={accent} setAccent={handleAccent}>
-            <Dashboard data={data} onDelete={handleDelete} />
+          <Layout {...layoutProps}>
+            <Dashboard data={data} onDelete={handleDelete} onAdd={handleAdd} onAddRecurring={handleAddRecurring} onDeleteRecurring={handleDeleteRecurring} />
           </Layout>
         } />
         <Route path="/income" element={
-          <Layout currency={data.currency} setCurrency={handleCurrency} theme={theme} toggleTheme={toggleTheme} accent={accent} setAccent={handleAccent}>
-            <Income data={data} onAdd={handleAdd} onDelete={handleDelete} />
-          </Layout>
+          <Layout {...layoutProps}><Income data={data} onAdd={handleAdd} onDelete={handleDelete} /></Layout>
         } />
         <Route path="/expenses" element={
-          <Layout currency={data.currency} setCurrency={handleCurrency} theme={theme} toggleTheme={toggleTheme} accent={accent} setAccent={handleAccent}>
-            <Expenses data={data} onAdd={handleAdd} onDelete={handleDelete} />
-          </Layout>
+          <Layout {...layoutProps}><Expenses data={data} onAdd={handleAdd} onDelete={handleDelete} /></Layout>
         } />
         <Route path="/goals" element={
-          <Layout currency={data.currency} setCurrency={handleCurrency} theme={theme} toggleTheme={toggleTheme} accent={accent} setAccent={handleAccent}>
-            <Goals
-              data={data}
-              onAdd={handleAddGoal}
-              onDelete={handleDeleteGoal}
-              onAddToGoal={handleAddToGoal}
-            />
-          </Layout>
+          <Layout {...layoutProps}><Goals data={data} onAdd={handleAddGoal} onDelete={handleDeleteGoal} onAddToGoal={handleAddToGoal} /></Layout>
         } />
       </Routes>
     </BrowserRouter>
