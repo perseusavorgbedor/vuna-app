@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Income from './pages/Income';
@@ -13,6 +13,7 @@ export default function App() {
   const [data, setData] = useState(() => loadData());
   const [theme, setTheme] = useState(() => localStorage.getItem('vuna_theme') || 'dark');
   const [accent, setAccentState] = useState(() => localStorage.getItem('vuna_accent') || 'green');
+  const isReturning = !!localStorage.getItem('vuna_visited');
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -28,6 +29,10 @@ export default function App() {
   function handleAccent(color) {
     setAccentState(color);
     localStorage.setItem('vuna_accent', color);
+  }
+
+  function markVisited() {
+    localStorage.setItem('vuna_visited', 'true');
   }
 
   const handleAdd = useCallback((type, entry) => {
@@ -81,10 +86,17 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Landing {...sharedProps} />} />
+        <Route path="/" element={<Landing {...sharedProps} isReturning={isReturning} markVisited={markVisited} />} />
         <Route path="/dashboard" element={
           <Layout {...layoutProps}>
-            <Dashboard data={data} onDelete={handleDelete} onAdd={handleAdd} onAddRecurring={handleAddRecurring} onDeleteRecurring={handleDeleteRecurring} />
+            <Dashboard
+              data={data}
+              onDelete={handleDelete}
+              onAdd={handleAdd}
+              onAddRecurring={handleAddRecurring}
+              onDeleteRecurring={handleDeleteRecurring}
+              isReturning={isReturning}
+            />
           </Layout>
         } />
         <Route path="/income" element={

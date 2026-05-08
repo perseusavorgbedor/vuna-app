@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import StatCard from '../components/StatCard';
 import BarChart from '../components/BarChart';
 import EntryItem from '../components/EntryItem';
@@ -7,25 +7,28 @@ import { fmt, thisMonth, lastMonth, monthKey, totalAllCurrencies, uid, todayISO,
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
+const CHECKLIST = [
+  { id: 'income', label: 'Log your first income payment', icon: '💰' },
+  { id: 'expense', label: 'Log your first expense', icon: '🧾' },
+  { id: 'goal', label: 'Set a savings goal', icon: '🎯' },
+  { id: 'recurring', label: 'Add a daily regular expense', icon: '⚡' },
+];
+
 function getInsight(earned, spent, net, rate, lastEarned, catAnalysis) {
-  if (earned === 0 && spent === 0)
-    return 'Welcome to Vuna. Start by logging your first income or expense to see insights here.';
+  if (earned === 0 && spent === 0) return 'Welcome to Vuna. Start by logging your first income or expense to see insights here.';
   const lines = [];
   if (earned === 0) lines.push('No income logged this month yet — remember to log every payment.');
   else if (rate < 0) lines.push(`You are spending more than you earn. You are ${Math.abs(net).toFixed(2)} in the red — cut non-essential spending now.`);
   else if (rate < 20) lines.push(`Your savings rate is ${rate}%. Try to hit at least 20% to build a buffer for slow months.`);
   else lines.push(`Strong month — you are saving ${rate}% of what you earn. Keep it up.`);
-  if (lastEarned > 0 && earned < lastEarned * 0.7)
-    lines.push(` Income is down ${Math.round(((lastEarned - earned) / lastEarned) * 100)}% from last month — dry season incoming. Reduce spending now.`);
-  else if (lastEarned > 0 && earned > lastEarned * 1.2)
-    lines.push(` Income is up ${Math.round(((earned - lastEarned) / lastEarned) * 100)}% from last month. Consider putting the extra toward a goal.`);
+  if (lastEarned > 0 && earned < lastEarned * 0.7) lines.push(` Income is down ${Math.round(((lastEarned - earned) / lastEarned) * 100)}% from last month — dry season incoming.`);
+  else if (lastEarned > 0 && earned > lastEarned * 1.2) lines.push(` Income is up ${Math.round(((earned - lastEarned) / lastEarned) * 100)}% from last month. Consider putting the extra toward a goal.`);
   if (catAnalysis.length > 0) lines.push(` ${catAnalysis[0]}`);
   return lines.join('');
 }
 
 function getCatAnalysis(expenses) {
-  const tm = thisMonth();
-  const lm = lastMonth();
+  const tm = thisMonth(); const lm = lastMonth();
   const tmCats = {}; const lmCats = {};
   expenses.filter(e => monthKey(e.date) === tm).forEach(e => { tmCats[e.category] = (tmCats[e.category] || 0) + Number(e.amount); });
   expenses.filter(e => monthKey(e.date) === lm).forEach(e => { lmCats[e.category] = (lmCats[e.category] || 0) + Number(e.amount); });
@@ -46,14 +49,37 @@ function getSeasonBadge(earned, lastEarned) {
   return { label, color: 'var(--text3)' };
 }
 
-export default function Dashboard({ data, onDelete, onAdd, onAddRecurring, onDeleteRecurring }) {
-  const { income, expenses, currency, recurring = [] } = data;
+// Toast component
+function Toast({ message, onDone }) {
+  useEffect(() => {
+    const t = setTimeout(onDone, 3500);
+    return () => clearTimeout(t);
+  }, [onDone]);
+  return (
+    <div style={{
+      position: 'fixed', top: 24, right: 24, zIndex: 999,
+      background: 'var(--bg2)', border: '1px solid var(--accent)',
+      borderRadius: 'var(--radius)', padding: '12px 18px',
+      display: 'flex', alignItems: 'center', gap: 10,
+      boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+      animation: 'modalIn 0.3s ease',
+      maxWidth: 300,
+    }}>
+      <span style={{ fontSize: 18 }}>👋</span>
+      <span style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.5 }}>{message}</span>
+      <button onClick={onDone} style={{ background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: 14, marginLeft: 4 }}>✕</button>
+    </div>
+  );
+}
+
+export default function Dashboard({ data, onDelete, onAdd, onAddRecurring, onDeleteRecurring, isReturning }) {
+  const { income, expenses, goals = [], currency, recurring = [] } = data;
   const [showRecurringModal, setShowRecurringModal] = useState(false);
   const [recurringForm, setRecurringForm] = useState({ name: '', amount: '', currency, category: 'Transport' });
   const [recurringError, setRecurringError] = useState('');
+  const [showToast, setShowToast] = useState(isReturning);
 
-  const tm = thisMonth();
-  const lm = lastMonth();
+  const tm = thisMonth(); const lm = lastMonth();
   const earned = totalAllCurrencies(income, tm);
   const spent = totalAllCurrencies(expenses, tm);
   const net = earned - spent;
@@ -75,8 +101,24 @@ export default function Dashboard({ data, onDelete, onAdd, onAddRecurring, onDel
     ...expenses.map(e => ({ ...e, type: 'expense' })),
   ].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 8), [income, expenses]);
 
+  // checklist completion
+  const checklistDone = {
+    income: income.length > 0,
+    expense: expenses.length > 0,
+    goal: goals.length > 0,
+    recurring: recurring.length > 0,
+  };
+  const allDone = Object.values(checklistDone).every(Boolean);
+  const checklistDismissed = !!localStorage.getItem('vuna_checklist_done');
+  const showChecklist = !checklistDismissed && !allDone;
+
+  useEffect(() => {
+    if (allDone && !checklistDismissed) localStorage.setItem('vuna_checklist_done', 'true');
+  }, [allDone, checklistDismissed]);
+
   const now = new Date();
   const netColor = net > 0 ? 'var(--accent)' : net < 0 ? 'var(--red)' : 'var(--text)';
+  const isEmpty = income.length === 0 && expenses.length === 0;
 
   function logRecurring(item) {
     onAdd('expense', { id: uid(), amount: item.amount, currency: item.currency, category: item.category, date: todayISO(), description: item.name });
@@ -91,10 +133,19 @@ export default function Dashboard({ data, onDelete, onAdd, onAddRecurring, onDel
     setRecurringError('');
   }
 
-  const isEmpty = income.length === 0 && expenses.length === 0;
+  const firstName = 'back'; // can be personalised later when auth is added
 
   return (
     <div className="page">
+      {/* Welcome back toast */}
+      {showToast && (
+        <Toast
+          message={`Welcome back! You're on track — keep logging.`}
+          onDone={() => setShowToast(false)}
+        />
+      )}
+
+      {/* Header */}
       <div className="page-header">
         <div>
           <h1 className="page-title">Dashboard</h1>
@@ -111,8 +162,26 @@ export default function Dashboard({ data, onDelete, onAdd, onAddRecurring, onDel
         <StatCard label="Savings Rate" value={`${rate}%`} type="rate" />
       </div>
 
+      {/* Getting started checklist */}
+      {showChecklist && (
+        <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '20px 22px', marginBottom: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+            <h2 style={{ fontSize: 14, fontWeight: 500 }}>Getting started</h2>
+            <span style={{ fontSize: 11, color: 'var(--text3)' }}>{Object.values(checklistDone).filter(Boolean).length} of {CHECKLIST.length} done</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {CHECKLIST.map(item => (
+              <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 10px', borderRadius: 'var(--radius-sm)', background: checklistDone[item.id] ? 'var(--accent-dim)' : 'var(--bg3)', opacity: checklistDone[item.id] ? 0.7 : 1 }}>
+                <span style={{ fontSize: 16 }}>{checklistDone[item.id] ? '✅' : item.icon}</span>
+                <span style={{ fontSize: 13, color: checklistDone[item.id] ? 'var(--text3)' : 'var(--text)', textDecoration: checklistDone[item.id] ? 'line-through' : 'none' }}>{item.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Empty state */}
-      {isEmpty && (
+      {isEmpty && !showChecklist && (
         <div style={{ background: 'var(--bg2)', border: '1px dashed var(--border2)', borderRadius: 'var(--radius)', padding: '32px 24px', textAlign: 'center', marginBottom: 16 }}>
           <div style={{ fontSize: 32, marginBottom: 12 }}>👋</div>
           <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 6 }}>Welcome to Vuna</h3>
@@ -160,18 +229,12 @@ export default function Dashboard({ data, onDelete, onAdd, onAddRecurring, onDel
           <button className="btn-primary" style={{ fontSize: 12, padding: '6px 12px' }} onClick={() => setShowRecurringModal(true)}>+ Add Regular</button>
         </div>
         {recurring.length === 0 ? (
-          <p className="empty-state" style={{ padding: '16px 0' }}>
-            Add your daily regulars here — transport, food, data — and log them in one tap. No forms needed.
-          </p>
+          <p className="empty-state" style={{ padding: '16px 0' }}>Add your daily regulars — transport, food, data — and log them in one tap. No forms needed.</p>
         ) : (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {recurring.map(item => (
               <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', padding: '6px 10px' }}>
-                <button
-                  onClick={() => logRecurring(item)}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)', fontFamily: 'var(--font)', fontSize: 13, padding: 0, display: 'flex', alignItems: 'center', gap: 6 }}
-                  title={`Log ${item.name}`}
-                >
+                <button onClick={() => logRecurring(item)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)', fontFamily: 'var(--font)', fontSize: 13, padding: 0, display: 'flex', alignItems: 'center', gap: 6 }} title={`Log ${item.name}`}>
                   <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--red)', display: 'inline-block' }} />
                   {item.name}
                   <span style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--text3)' }}>{fmt(item.amount, item.currency)}</span>

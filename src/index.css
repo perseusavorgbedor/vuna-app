@@ -90,7 +90,7 @@ html, body, #root {
 
 .logo-mark {
   width: 34px; height: 34px;
-  background: var(--green);
+  background: var(--accent);
   color: #000;
   border-radius: 8px;
   display: flex;
@@ -138,7 +138,7 @@ html, body, #root {
 }
 
 .nav-item:hover { background: var(--bg3); color: var(--text); }
-.nav-item.active { background: var(--green-dim); color: var(--green); font-weight: 500; }
+.nav-item.active { background: var(--accent-dim); color: var(--accent); font-weight: 500; }
 
 /* currency toggle */
 .sidebar-footer { margin-top: auto; }
@@ -160,7 +160,7 @@ html, body, #root {
   transition: all 0.15s;
 }
 .toggle-btn:hover { border-color: var(--border2); color: var(--text); }
-.toggle-btn.active { background: var(--green); color: #000; border-color: var(--green); font-weight: 500; }
+.toggle-btn.active { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 500; }
 
 /* ── MAIN ── */
 .main {
@@ -216,7 +216,7 @@ html, body, #root {
   stroke-linejoin: round;
 }
 
-.bottom-nav-item.active { color: var(--green); }
+.bottom-nav-item.active { color: var(--accent); }
 .bottom-nav-item:hover { color: var(--text); }
 
 /* ── PAGE ── */
@@ -267,7 +267,7 @@ html, body, #root {
   gap: 6px;
 }
 
-.stat-income { border-left: 3px solid var(--green); }
+.stat-income { border-left: 3px solid var(--accent); }
 .stat-expense { border-left: 3px solid var(--red); }
 .stat-net { border-left: 3px solid var(--blue); }
 .stat-rate { border-left: 3px solid var(--amber); }
@@ -324,7 +324,7 @@ html, body, #root {
   border-radius: var(--radius-sm);
   padding: 14px 16px;
   margin-bottom: 14px;
-  border-left: 3px solid var(--green);
+  border-left: 3px solid var(--accent);
 }
 .insight-text { font-size: 13px; line-height: 1.65; color: var(--text2); }
 
@@ -352,7 +352,7 @@ html, body, #root {
 .entry-item:hover { background: var(--bg3); }
 
 .entry-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.dot-income { background: var(--green); }
+.dot-income { background: var(--accent); }
 .dot-expense { background: var(--red); }
 
 .entry-info { flex: 1; min-width: 0; }
@@ -360,7 +360,7 @@ html, body, #root {
 .entry-meta { font-size: 11px; color: var(--text3); margin-top: 2px; }
 
 .entry-amount { font-family: var(--mono); font-size: 14px; font-weight: 500; flex-shrink: 0; }
-.amt-income { color: var(--green); }
+.amt-income { color: var(--accent); }
 .amt-expense { color: var(--red); }
 
 .entry-actions { display: flex; gap: 4px; opacity: 0; transition: opacity 0.15s; }
@@ -403,16 +403,16 @@ html, body, #root {
 .goal-name { font-size: 15px; font-weight: 600; }
 .goal-target { font-size: 12px; color: var(--text2); margin-bottom: 14px; font-family: var(--mono); }
 .goal-progress-wrap { background: var(--bg3); border-radius: 6px; height: 8px; overflow: hidden; margin-bottom: 10px; }
-.goal-progress-bar { height: 100%; border-radius: 6px; background: var(--green); transition: width 0.5s ease; }
+.goal-progress-bar { height: 100%; border-radius: 6px; background: var(--accent); transition: width 0.5s ease; }
 .goal-stats { display: flex; justify-content: space-between; font-size: 11px; color: var(--text3); font-family: var(--mono); }
-.goal-pct { font-size: 13px; font-weight: 600; color: var(--green); }
+.goal-pct { font-size: 13px; font-weight: 600; color: var(--accent); }
 .goal-add-btn {
   background: none; border: 1px dashed var(--border2);
   color: var(--text3); font-size: 12px; padding: 6px 12px;
   border-radius: var(--radius-sm); cursor: pointer; margin-top: 12px;
   width: 100%; transition: all 0.15s; font-family: var(--font);
 }
-.goal-add-btn:hover { border-color: var(--green); color: var(--green); }
+.goal-add-btn:hover { border-color: var(--accent); color: var(--accent); }
 
 .goal-empty, .empty-state {
   text-align: center; padding: 32px 20px;
@@ -438,7 +438,7 @@ html, body, #root {
 
 /* ── BUTTONS ── */
 .btn-primary {
-  background: var(--green); color: #000;
+  background: var(--accent); color: #000;
   border: none; padding: 10px 18px;
   border-radius: var(--radius-sm);
   font-family: var(--font); font-size: 13px; font-weight: 600;
@@ -497,7 +497,7 @@ html, body, #root {
   padding: 10px 12px; border-radius: var(--radius-sm);
   outline: none; transition: border-color 0.15s;
 }
-.form-input:focus, .form-select:focus { border-color: var(--green); }
+.form-input:focus, .form-select:focus { border-color: var(--accent); }
 .form-input::placeholder { color: var(--text3); }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .form-submit { width: 100%; margin-top: 8px; padding: 12px; font-size: 14px; }
