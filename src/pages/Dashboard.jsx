@@ -3,7 +3,7 @@ import StatCard from '../components/StatCard';
 import BarChart from '../components/BarChart';
 import EntryItem from '../components/EntryItem';
 import Modal from '../components/Modal';
-import { fmt, thisMonth, lastMonth, monthKey, totalAllCurrencies, uid, todayISO, CATEGORIES, CURRENCIES } from '../utils/storage';
+import { fmt, thisMonth, lastMonth, monthKey, totalAllCurrencies, uid, todayISO, CATEGORIES, CURRENCIES, INCOME_SOURCES } from '../utils/storage';
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
@@ -11,7 +11,7 @@ const CHECKLIST = [
   { id: 'income', label: 'Log your first income payment', icon: '💰' },
   { id: 'expense', label: 'Log your first expense', icon: '🧾' },
   { id: 'goal', label: 'Set a savings goal', icon: '🎯' },
-  { id: 'recurring', label: 'Add a daily regular expense', icon: '⚡' },
+  { id: 'recurring', label: 'Add a daily regular', icon: '⚡' },
 ];
 
 function getInsight(earned, spent, net, rate, lastEarned, catAnalysis) {
@@ -49,12 +49,8 @@ function getSeasonBadge(earned, lastEarned) {
   return { label, color: 'var(--text3)' };
 }
 
-// Toast component
 function Toast({ message, onDone }) {
-  useEffect(() => {
-    const t = setTimeout(onDone, 3500);
-    return () => clearTimeout(t);
-  }, [onDone]);
+  useEffect(() => { const t = setTimeout(onDone, 3500); return () => clearTimeout(t); }, [onDone]);
   return (
     <div style={{
       position: 'fixed', top: 24, right: 24, zIndex: 999,
@@ -62,8 +58,7 @@ function Toast({ message, onDone }) {
       borderRadius: 'var(--radius)', padding: '12px 18px',
       display: 'flex', alignItems: 'center', gap: 10,
       boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
-      animation: 'modalIn 0.3s ease',
-      maxWidth: 300,
+      animation: 'modalIn 0.3s ease', maxWidth: 300,
     }}>
       <span style={{ fontSize: 18 }}>👋</span>
       <span style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.5 }}>{message}</span>
@@ -72,11 +67,88 @@ function Toast({ message, onDone }) {
   );
 }
 
+// Quick log mini modal — shared for both income and expense shortcuts
+function QuickLogModal({ item, type, onClose, onLog }) {
+  const [amount, setAmount] = useState('');
+  const [error, setError] = useState('');
+  const [date, setDate] = useState(todayISO());
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    if (!amount || Number(amount) <= 0) { setError('Enter a valid amount.'); return; }
+    onLog({ ...item, amount: Number(amount), date });
+    onClose();
+  }
+
+  const isExpense = type === 'expense';
+
+  return (
+    <Modal title={`Log — ${item.name}`} onClose={onClose}>
+      <form onSubmit={handleSubmit}>
+        <p style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 16, lineHeight: 1.6 }}>
+          {isExpense ? `Category: ${item.category}` : `Source: ${item.source}`} · {item.currency}
+        </p>
+        <div className="form-row">
+          <div className="form-group">
+            <label className="form-label">Amount ({item.currency})</label>
+            <input
+              className="form-input"
+              type="number" min="0.01" step="0.01"
+              placeholder="e.g. 15.00"
+              value={amount}
+              onChange={e => setAmount(e.target.value)}
+              autoFocus
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Date</label>
+            <input
+              className="form-input"
+              type="date"
+              value={date}
+              onChange={e => setDate(e.target.value)}
+            />
+          </div>
+        </div>
+        {error && <p className="form-error">{error}</p>}
+        <button className="btn-primary form-submit" type="submit">
+          {isExpense ? 'Log Expense' : 'Log Income'}
+        </button>
+      </form>
+    </Modal>
+  );
+}
+
+// Shortcut pill button
+function ShortcutPill({ item, type, onTap, onDelete }) {
+  const dotColor = type === 'expense' ? 'var(--red)' : 'var(--accent)';
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', padding: '6px 10px' }}>
+      <button
+        onClick={onTap}
+        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)', fontFamily: 'var(--font)', fontSize: 13, padding: 0, display: 'flex', alignItems: 'center', gap: 6 }}
+        title={`Quick log: ${item.name}`}
+      >
+        <span style={{ width: 8, height: 8, borderRadius: '50%', background: dotColor, display: 'inline-block', flexShrink: 0 }} />
+        {item.name}
+        <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--text3)', background: 'var(--bg2)', padding: '2px 5px', borderRadius: 4 }}>
+          {type === 'expense' ? item.category.split(' ')[0] : item.source.split(' ')[0]}
+        </span>
+      </button>
+      <button onClick={onDelete} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)', fontSize: 12, padding: '0 2px', lineHeight: 1 }} title="Remove">✕</button>
+    </div>
+  );
+}
+
 export default function Dashboard({ data, onDelete, onAdd, onAddRecurring, onDeleteRecurring, isReturning }) {
   const { income, expenses, goals = [], currency, recurring = [] } = data;
-  const [showRecurringModal, setShowRecurringModal] = useState(false);
-  const [recurringForm, setRecurringForm] = useState({ name: '', amount: '', currency, category: 'Transport' });
-  const [recurringError, setRecurringError] = useState('');
+
+  // modals
+  const [showAddShortcutModal, setShowAddShortcutModal] = useState(false);
+  const [quickLogItem, setQuickLogItem] = useState(null); // { item, type }
+  const [shortcutForm, setShortcutForm] = useState({ name: '', currency, category: 'Transport', source: 'Cash', type: 'expense' });
+  const [shortcutError, setShortcutError] = useState('');
   const [showToast, setShowToast] = useState(isReturning);
 
   const tm = thisMonth(); const lm = lastMonth();
@@ -101,49 +173,47 @@ export default function Dashboard({ data, onDelete, onAdd, onAddRecurring, onDel
     ...expenses.map(e => ({ ...e, type: 'expense' })),
   ].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 8), [income, expenses]);
 
-  // checklist completion
-  const checklistDone = {
-    income: income.length > 0,
-    expense: expenses.length > 0,
-    goal: goals.length > 0,
-    recurring: recurring.length > 0,
-  };
+  const checklistDone = { income: income.length > 0, expense: expenses.length > 0, goal: goals.length > 0, recurring: recurring.length > 0 };
   const allDone = Object.values(checklistDone).every(Boolean);
   const checklistDismissed = !!localStorage.getItem('vuna_checklist_done');
   const showChecklist = !checklistDismissed && !allDone;
+  useEffect(() => { if (allDone && !checklistDismissed) localStorage.setItem('vuna_checklist_done', 'true'); }, [allDone, checklistDismissed]);
 
-  useEffect(() => {
-    if (allDone && !checklistDismissed) localStorage.setItem('vuna_checklist_done', 'true');
-  }, [allDone, checklistDismissed]);
-
-  const now = new Date();
   const netColor = net > 0 ? 'var(--accent)' : net < 0 ? 'var(--red)' : 'var(--text)';
   const isEmpty = income.length === 0 && expenses.length === 0;
+  const now = new Date();
 
-  function logRecurring(item) {
-    onAdd('expense', { id: uid(), amount: item.amount, currency: item.currency, category: item.category, date: todayISO(), description: item.name });
+  // split recurring into expense shortcuts and income shortcuts
+  const expenseShortcuts = recurring.filter(r => r.type === 'expense' || !r.type);
+  const incomeShortcuts = recurring.filter(r => r.type === 'income');
+
+  function handleQuickLog(item, type) {
+    setQuickLogItem({ item, type });
   }
 
-  function handleAddRecurring(e) {
+  function handleLogConfirm({ amount, date }) {
+    const { item, type } = quickLogItem;
+    const entry = {
+      id: uid(), amount, currency: item.currency, date,
+      description: item.name,
+      ...(type === 'expense' ? { category: item.category } : { source: item.source }),
+    };
+    onAdd(type, entry);
+    setQuickLogItem(null);
+  }
+
+  function handleAddShortcut(e) {
     e.preventDefault();
-    if (!recurringForm.amount || Number(recurringForm.amount) <= 0) { setRecurringError('Enter a valid amount.'); return; }
-    onAddRecurring({ id: uid(), ...recurringForm, amount: Number(recurringForm.amount) });
-    setShowRecurringModal(false);
-    setRecurringForm({ name: '', amount: '', currency, category: 'Transport' });
-    setRecurringError('');
+    if (!shortcutForm.name.trim()) { setShortcutError('Enter a name.'); return; }
+    onAddRecurring({ id: uid(), ...shortcutForm });
+    setShowAddShortcutModal(false);
+    setShortcutForm({ name: '', currency, category: 'Transport', source: 'Cash', type: 'expense' });
+    setShortcutError('');
   }
-
-  const firstName = 'back'; // can be personalised later when auth is added
 
   return (
     <div className="page">
-      {/* Welcome back toast */}
-      {showToast && (
-        <Toast
-          message={`Welcome back! You're on track — keep logging.`}
-          onDone={() => setShowToast(false)}
-        />
-      )}
+      {showToast && <Toast message="Welcome back! You're on track — keep logging." onDone={() => setShowToast(false)} />}
 
       {/* Header */}
       <div className="page-header">
@@ -171,7 +241,7 @@ export default function Dashboard({ data, onDelete, onAdd, onAddRecurring, onDel
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {CHECKLIST.map(item => (
-              <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 10px', borderRadius: 'var(--radius-sm)', background: checklistDone[item.id] ? 'var(--accent-dim)' : 'var(--bg3)', opacity: checklistDone[item.id] ? 0.7 : 1 }}>
+              <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 10px', borderRadius: 'var(--radius-sm)', background: checklistDone[item.id] ? 'var(--accent-dim)' : 'var(--bg3)', opacity: checklistDone[item.id] ? 0.7 : 1, transition: 'all 0.2s' }}>
                 <span style={{ fontSize: 16 }}>{checklistDone[item.id] ? '✅' : item.icon}</span>
                 <span style={{ fontSize: 13, color: checklistDone[item.id] ? 'var(--text3)' : 'var(--text)', textDecoration: checklistDone[item.id] ? 'line-through' : 'none' }}>{item.label}</span>
               </div>
@@ -222,26 +292,42 @@ export default function Dashboard({ data, onDelete, onAdd, onAddRecurring, onDel
         </div>
       )}
 
-      {/* Quick Log Recurring */}
+      {/* Quick Log */}
       <div className="panel">
         <div className="panel-header">
-          <h2 className="panel-title">Quick Log</h2>
-          <button className="btn-primary" style={{ fontSize: 12, padding: '6px 12px' }} onClick={() => setShowRecurringModal(true)}>+ Add Regular</button>
+          <div>
+            <h2 className="panel-title">Quick Log</h2>
+            <p style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>Tap any shortcut, enter today's amount, done.</p>
+          </div>
+          <button className="btn-primary" style={{ fontSize: 12, padding: '6px 12px' }} onClick={() => setShowAddShortcutModal(true)}>+ Add Shortcut</button>
         </div>
+
         {recurring.length === 0 ? (
-          <p className="empty-state" style={{ padding: '16px 0' }}>Add your daily regulars — transport, food, data — and log them in one tap. No forms needed.</p>
+          <p className="empty-state" style={{ padding: '16px 0' }}>
+            Add shortcuts for things you log often — transport, food, allowance, wages. Tap to log, enter the amount, done.
+          </p>
         ) : (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {recurring.map(item => (
-              <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', padding: '6px 10px' }}>
-                <button onClick={() => logRecurring(item)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)', fontFamily: 'var(--font)', fontSize: 13, padding: 0, display: 'flex', alignItems: 'center', gap: 6 }} title={`Log ${item.name}`}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--red)', display: 'inline-block' }} />
-                  {item.name}
-                  <span style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--text3)' }}>{fmt(item.amount, item.currency)}</span>
-                </button>
-                <button onClick={() => onDeleteRecurring(item.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)', fontSize: 13, padding: '0 2px', lineHeight: 1 }} title="Remove">✕</button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {expenseShortcuts.length > 0 && (
+              <div>
+                <p style={{ fontSize: 11, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Expenses</p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {expenseShortcuts.map(item => (
+                    <ShortcutPill key={item.id} item={item} type="expense" onTap={() => handleQuickLog(item, 'expense')} onDelete={() => onDeleteRecurring(item.id)} />
+                  ))}
+                </div>
               </div>
-            ))}
+            )}
+            {incomeShortcuts.length > 0 && (
+              <div>
+                <p style={{ fontSize: 11, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Income</p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {incomeShortcuts.map(item => (
+                    <ShortcutPill key={item.id} item={item} type="income" onTap={() => handleQuickLog(item, 'income')} onDelete={() => onDeleteRecurring(item.id)} />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -258,34 +344,78 @@ export default function Dashboard({ data, onDelete, onAdd, onAddRecurring, onDel
         )}
       </div>
 
-      {/* Add Recurring Modal */}
-      {showRecurringModal && (
-        <Modal title="Add Regular Expense" onClose={() => setShowRecurringModal(false)}>
-          <form onSubmit={handleAddRecurring}>
+      {/* Quick Log Mini Modal */}
+      {quickLogItem && (
+        <QuickLogModal
+          item={quickLogItem.item}
+          type={quickLogItem.type}
+          onClose={() => setQuickLogItem(null)}
+          onLog={({ amount, date }) => {
+            const { item, type } = quickLogItem;
+            onAdd(type, {
+              id: uid(), amount, currency: item.currency, date,
+              description: item.name,
+              ...(type === 'expense' ? { category: item.category } : { source: item.source }),
+            });
+            setQuickLogItem(null);
+          }}
+        />
+      )}
+
+      {/* Add Shortcut Modal */}
+      {showAddShortcutModal && (
+        <Modal title="Add Quick Log Shortcut" onClose={() => setShowAddShortcutModal(false)}>
+          <form onSubmit={handleAddShortcut}>
             <div className="form-group">
-              <label className="form-label">Name</label>
-              <input className="form-input" type="text" placeholder="e.g. Bolt ride, Lunch, Data bundle" value={recurringForm.name} onChange={e => setRecurringForm({ ...recurringForm, name: e.target.value })} required />
+              <label className="form-label">Shortcut name</label>
+              <input className="form-input" type="text" placeholder="e.g. Trotro home, Lunch, Daily allowance" value={shortcutForm.name} onChange={e => setShortcutForm({ ...shortcutForm, name: e.target.value })} required />
             </div>
+
+            {/* Type toggle */}
+            <div className="form-group">
+              <label className="form-label">Type</label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {['expense', 'income'].map(t => (
+                  <button
+                    key={t} type="button"
+                    onClick={() => setShortcutForm({ ...shortcutForm, type: t })}
+                    style={{
+                      flex: 1, padding: '8px', borderRadius: 'var(--radius-sm)',
+                      border: shortcutForm.type === t ? '1.5px solid var(--accent)' : '1px solid var(--border)',
+                      background: shortcutForm.type === t ? 'var(--accent-dim)' : 'transparent',
+                      color: shortcutForm.type === t ? 'var(--accent)' : 'var(--text2)',
+                      fontFamily: 'var(--font)', fontSize: 13, cursor: 'pointer', fontWeight: shortcutForm.type === t ? 600 : 400,
+                    }}
+                  >
+                    {t === 'expense' ? '🧾 Expense' : '💰 Income'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">Amount</label>
-                <input className="form-input" type="number" min="0.01" step="0.01" placeholder="20.00" value={recurringForm.amount} onChange={e => setRecurringForm({ ...recurringForm, amount: e.target.value })} required />
+                <label className="form-label">{shortcutForm.type === 'expense' ? 'Category' : 'Source'}</label>
+                {shortcutForm.type === 'expense' ? (
+                  <select className="form-select" value={shortcutForm.category} onChange={e => setShortcutForm({ ...shortcutForm, category: e.target.value })}>
+                    {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+                  </select>
+                ) : (
+                  <select className="form-select" value={shortcutForm.source} onChange={e => setShortcutForm({ ...shortcutForm, source: e.target.value })}>
+                    {INCOME_SOURCES.map(s => <option key={s}>{s}</option>)}
+                  </select>
+                )}
               </div>
               <div className="form-group">
                 <label className="form-label">Currency</label>
-                <select className="form-select" value={recurringForm.currency} onChange={e => setRecurringForm({ ...recurringForm, currency: e.target.value })}>
+                <select className="form-select" value={shortcutForm.currency} onChange={e => setShortcutForm({ ...shortcutForm, currency: e.target.value })}>
                   {CURRENCIES.map(c => <option key={c}>{c}</option>)}
                 </select>
               </div>
             </div>
-            <div className="form-group">
-              <label className="form-label">Category</label>
-              <select className="form-select" value={recurringForm.category} onChange={e => setRecurringForm({ ...recurringForm, category: e.target.value })}>
-                {CATEGORIES.map(c => <option key={c}>{c}</option>)}
-              </select>
-            </div>
-            {recurringError && <p className="form-error">{recurringError}</p>}
-            <button className="btn-primary form-submit" type="submit">Save Regular</button>
+
+            {shortcutError && <p className="form-error">{shortcutError}</p>}
+            <button className="btn-primary form-submit" type="submit">Save Shortcut</button>
           </form>
         </Modal>
       )}
