@@ -8,6 +8,7 @@ import Income from './pages/Income';
 import Expenses from './pages/Expenses';
 import Goals from './pages/Goals';
 import Debts from './pages/Debts';
+import Invoices from './pages/Invoices';
 import Insights from './pages/Insights';
 import Settings from './pages/Settings';
 import Appearance from './pages/Appearance';
@@ -41,7 +42,14 @@ export default function App() {
         : { ...p, expenses: [...p.expenses, entry] }),
 
       deleteEntry: (type, id) => update(p => {
-        if (type === 'income') return { ...p, income: p.income.filter(e => e.id !== id) };
+        if (type === 'income') {
+          const gone = p.income.find(e => e.id === id);
+          // removing income that came from a paid invoice reopens that invoice
+          const invoices = gone?.invoiceId
+            ? p.invoices.map(v => v.id === gone.invoiceId ? { ...v, paid: false, paidDate: '', incomeId: '' } : v)
+            : p.invoices;
+          return { ...p, income: p.income.filter(e => e.id !== id), invoices };
+        }
         const gone = p.expenses.find(e => e.id === id);
         let debts = p.debts;
         // removing a debt-payment expense puts the money back on the debt
@@ -81,6 +89,22 @@ export default function App() {
         };
       }),
 
+      addInvoice: inv => update(p => ({ ...p, invoices: [...p.invoices, inv] })),
+      deleteInvoice: id => update(p => ({ ...p, invoices: p.invoices.filter(v => v.id !== id) })),
+      markInvoicePaid: (id, date) => update(p => {
+        const inv = p.invoices.find(v => v.id === id);
+        if (!inv || inv.paid) return p;
+        const incomeId = uid();
+        return {
+          ...p,
+          invoices: p.invoices.map(v => v.id === id ? { ...v, paid: true, paidDate: date, incomeId } : v),
+          income: [...p.income, {
+            id: incomeId, amount: inv.amount, currency: inv.currency, source: 'Freelance Project',
+            date, description: `Paid · ${inv.client}${inv.note ? ' · ' + inv.note : ''}`, invoiceId: id,
+          }],
+        };
+      }),
+
       addShortcut: s => update(p => ({ ...p, shortcuts: [...p.shortcuts, s] })),
       deleteShortcut: id => update(p => ({ ...p, shortcuts: p.shortcuts.filter(s => s.id !== id) })),
 
@@ -104,6 +128,7 @@ export default function App() {
             <Route path="/expenses" element={<Expenses />} />
             <Route path="/goals" element={<Goals />} />
             <Route path="/debts" element={<Debts />} />
+            <Route path="/invoices" element={<Invoices />} />
             <Route path="/insights" element={<Insights />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/appearance" element={<Appearance />} />

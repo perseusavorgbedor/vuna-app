@@ -12,10 +12,13 @@ export default function Income() {
   const list = data.income;
   const [adding, setAdding] = useState(false);
   const [filter, setFilter] = useState('All');
+  const [q, setQ] = useState('');
 
   const month = list.filter(e => e.date.startsWith(viewMonth));
   const groups = ['All', ...Array.from(new Set(month.map(e => e.source)))];
+  const needle = q.trim().toLowerCase();
   const shown = (filter === 'All' ? month : month.filter(e => e.source === filter))
+    .filter(e => !needle || `${e.description} ${e.source}`.toLowerCase().includes(needle))
     .slice().sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
   const total = sumMonth(list, viewMonth, cur, rates);
   const prev = sumMonth(list, shiftMonth(viewMonth, -1), cur, rates);
@@ -37,6 +40,7 @@ export default function Income() {
       </div>
 
       <section className="card">
+        <input className="search" type="search" placeholder="Search this month" value={q} onChange={e => setQ(e.target.value)} aria-label="Search entries" />
         {groups.length > 2 && (
           <div className="chips">
             {groups.map(g => <button key={g} className={filter === g ? 'on' : ''} onClick={() => setFilter(g)}>{g}</button>)}

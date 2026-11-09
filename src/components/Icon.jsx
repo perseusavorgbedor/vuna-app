@@ -11,6 +11,7 @@ const PATHS = {
   close: 'M6 6l12 12M18 6L6 18',
   trash: 'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13',
   plus: 'M12 5v14M5 12h14',
+  inbox: 'M4 13l2-8h12l2 8M4 13v6h16v-6M4 13h5l1 2h4l1-2h5',
   chevron: 'M6 9l6 6 6-6',
 };
 

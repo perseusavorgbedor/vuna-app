@@ -69,3 +69,9 @@
 .land-features h3 { font-size: 17px; margin: 8px 0 4px; }
 .land-emoji { font-size: 26px; }
 .land-foot { text-align: center; margin-top: 40px; }
+
+/* ---------- Search / Owed to you ---------- */
+.search { width: 100%; background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: 10px 16px; margin-bottom: 12px; }
+.tag { display: inline-block; padding: 2px 10px; border-radius: 99px; font-size: 12px; font-weight: 600; background: var(--accent-soft); color: var(--accent); }
+.tag-late { background: var(--warm-soft); color: var(--warm-ink); }
+.sub-h { font-size: 18px; margin-top: 8px; }

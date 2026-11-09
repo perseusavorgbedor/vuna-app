@@ -10,6 +10,7 @@ const MAIN = [
   { to: '/expenses', label: 'Expenses', icon: 'down' },
   { to: '/goals', label: 'Savings goals', short: 'Goals', icon: 'target' },
   { to: '/debts', label: 'Debts', icon: 'debt' },
+  { to: '/invoices', label: 'Owed to you', icon: 'inbox' },
   { to: '/insights', label: 'Insights', icon: 'spark' },
 ];
 const PREFS = [
@@ -17,7 +18,7 @@ const PREFS = [
   { to: '/appearance', label: 'Appearance', icon: 'half' },
 ];
 const MOBILE_BAR = ['/overview', '/income', '/expenses', '/goals'];
-const MORE = ['/debts', '/insights', '/settings', '/appearance'];
+const MORE = ['/debts', '/invoices', '/insights', '/settings', '/appearance'];
 
 function ProgressCard() {
   const { data } = useVuna();

@@ -29,7 +29,7 @@ const defaults = () => ({
   profile: { name: '', subtitle: 'Freelancer' },
   currency: 'GHS',
   rates: { ...DEFAULT_RATES },
-  income: [], expenses: [], goals: [], debts: [], shortcuts: [],
+  income: [], expenses: [], goals: [], debts: [], invoices: [], shortcuts: [],
 });
 
 export function loadData() {

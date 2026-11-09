@@ -32,6 +32,19 @@ export default function Settings() {
     a.click();
     URL.revokeObjectURL(a.href);
   }
+  function exportCSV() {
+    const q = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const rows = [['Type', 'Date', 'Amount', 'Currency', 'Category or source', 'Note']];
+    data.income.forEach(e => rows.push(['Income', e.date, e.amount, e.currency, e.source, e.description]));
+    data.expenses.forEach(e => rows.push(['Expense', e.date, e.amount, e.currency, e.category, e.description]));
+    rows.sort((a, b) => (a[0] === 'Type' ? -1 : b[0] === 'Type' ? 1 : b[1].localeCompare(a[1])));
+    const csv = rows.map(r => r.map(q).join(',')).join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+    a.download = `vuna-entries-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
   function importData(e) {
     const file = e.target.files?.[0];
     e.target.value = '';
@@ -46,7 +59,7 @@ export default function Settings() {
           ...data, ...o,
           profile: { ...data.profile, ...(o.profile || {}) },
           rates: { ...DEFAULT_RATES, ...(o.rates || {}) },
-          goals: o.goals || [], debts: o.debts || [], shortcuts: o.shortcuts || [],
+          goals: o.goals || [], debts: o.debts || [], invoices: o.invoices || [], shortcuts: o.shortcuts || [],
         });
         flash('Backup restored.');
       } catch { flash('That file is not a valid Vuna backup.'); }
@@ -55,7 +68,7 @@ export default function Settings() {
   }
   function reset() {
     if (window.confirm('Delete ALL your data on this device? Export a backup first if unsure.')) {
-      actions.replaceAll({ ...data, income: [], expenses: [], goals: [], debts: [], shortcuts: [] });
+      actions.replaceAll({ ...data, income: [], expenses: [], goals: [], debts: [], invoices: [], shortcuts: [] });
       flash('All entries cleared.');
     }
   }
@@ -95,6 +108,7 @@ export default function Settings() {
         <p className="muted small" style={{ marginBottom: 12 }}>Everything is stored only in this browser. Export a backup regularly, especially before clearing browser data.</p>
         <div className="btn-row">
           <button className="btn" onClick={exportData}>Export backup</button>
+          <button className="btn" onClick={exportCSV}>Export CSV</button>
           <button className="btn" onClick={() => fileRef.current?.click()}>Import backup</button>
           <button className="btn btn-danger" onClick={reset}>Clear all data</button>
           <input ref={fileRef} type="file" accept="application/json,.json" hidden onChange={importData} />
