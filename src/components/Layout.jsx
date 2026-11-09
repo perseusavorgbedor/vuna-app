@@ -1,143 +1,148 @@
-import { NavLink } from 'react-router-dom';
-import { useState, useEffect, useRef } from 'react';
-import { CURRENCIES } from '../utils/storage';
+import { useState, useMemo } from 'react';
+import { NavLink, Outlet, Link, useLocation } from 'react-router-dom';
+import Icon from './Icon';
+import { useVuna } from '../context';
+import { CURRENCIES, monthNow, shiftMonth, monthLabel, fmtMoney, initials } from '../utils/storage';
 
-const NAV = [
-  { to: '/dashboard', label: 'Dashboard', icon: <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg> },
-  { to: '/income', label: 'Income', icon: <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12l7-7 7 7"/></svg> },
-  { to: '/expenses', label: 'Expenses', icon: <svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7 7 7-7"/></svg> },
-  { to: '/goals', label: 'Goals', icon: <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg> },
+const MAIN = [
+  { to: '/overview', label: 'Overview', icon: 'home' },
+  { to: '/income', label: 'Income', icon: 'up' },
+  { to: '/expenses', label: 'Expenses', icon: 'down' },
+  { to: '/goals', label: 'Savings goals', short: 'Goals', icon: 'target' },
+  { to: '/debts', label: 'Debts', icon: 'debt' },
+  { to: '/insights', label: 'Insights', icon: 'spark' },
 ];
-
-const ACCENTS = [
-  { key: 'green',  color: '#00E87A', label: 'Green'  },
-  { key: 'blue',   color: '#4D9EFF', label: 'Blue'   },
-  { key: 'purple', color: '#A855F7', label: 'Purple' },
-  { key: 'orange', color: '#FF6B35', label: 'Orange' },
+const PREFS = [
+  { to: '/settings', label: 'Settings', icon: 'gear' },
+  { to: '/appearance', label: 'Appearance', icon: 'half' },
 ];
+const MOBILE_BAR = ['/overview', '/income', '/expenses', '/goals'];
+const MORE = ['/debts', '/insights', '/settings', '/appearance'];
 
-export default function Layout({ children, currency, setCurrency, theme, toggleTheme, accent, setAccent }) {
-  const [panelOpen, setPanelOpen] = useState(false);
-  const panelRef = useRef(null);
+function ProgressCard() {
+  const { data } = useVuna();
+  const goal = data.goals
+    .filter(g => g.saved < g.target)
+    .sort((a, b) => b.saved / b.target - a.saved / a.target)[0];
 
-  // close panel when clicking outside
-  useEffect(() => {
-    function handleClick(e) {
-      if (panelRef.current && !panelRef.current.contains(e.target)) {
-        setPanelOpen(false);
-      }
-    }
-    if (panelOpen) document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, [panelOpen]);
+  if (!goal) {
+    return (
+      <Link to="/goals" className="progress-card progress-empty">
+        <span className="progress-label">✦ No goal yet</span>
+        <span className="progress-cta">Set your first goal →</span>
+      </Link>
+    );
+  }
+  const pct = Math.min(100, Math.round((goal.saved / goal.target) * 100));
+  return (
+    <Link to="/goals" className="progress-card">
+      <span className="progress-label">✦ {goal.name}</span>
+      <span className="progress-amount">{fmtMoney(goal.saved, goal.currency)}</span>
+      <span className="progress-bar"><span style={{ width: `${pct}%` }} /></span>
+      <span className="progress-foot">{pct}% of {fmtMoney(goal.target, goal.currency)}</span>
+    </Link>
+  );
+}
 
-  const currentAccent = ACCENTS.find(a => a.key === accent) || ACCENTS[0];
+export default function Layout() {
+  const { data, actions, viewMonth, setViewMonth } = useVuna();
+  const [moreOpen, setMoreOpen] = useState(false);
+  const loc = useLocation();
+  const all = [...MAIN, ...PREFS];
+  const current = all.find(n => n.to === loc.pathname);
+
+  const months = useMemo(() => {
+    const now = monthNow();
+    return Array.from({ length: 12 }, (_, i) => shiftMonth(now, -i));
+  }, []);
+
+  const navLink = n => (
+    <NavLink key={n.to} to={n.to} className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
+      <Icon name={n.icon} /> {n.label}
+    </NavLink>
+  );
 
   return (
-    <div className="app-layout">
+    <div className="shell">
       <aside className="sidebar">
-        <div className="logo">
-          <div className="logo-mark">V</div>
-          <span className="logo-text">Vuna</span>
-        </div>
+        <Link to="/overview" className="brand">
+          <span className="brand-mark">v</span>
+          <span className="brand-name">vuna.</span>
+        </Link>
 
-        <nav className="nav">
-          {NAV.map(n => (
-            <NavLink key={n.to} to={n.to} className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
-              {n.icon}{n.label}
-            </NavLink>
-          ))}
+        <nav aria-label="Workspace">
+          <p className="nav-heading">Workspace</p>
+          {MAIN.map(navLink)}
         </nav>
 
-        <div className="sidebar-footer">
-          <span className="toggle-label">Currency</span>
-          <div className="toggle-group">
-            {CURRENCIES.map(c => (
-              <button key={c} className={`toggle-btn${currency === c ? ' active' : ''}`} onClick={() => setCurrency(c)}>{c}</button>
-            ))}
-          </div>
-
-          {/* Theme & Color trigger */}
-          <div style={{ position: 'relative', marginTop: 12 }} ref={panelRef}>
-            <button
-              className="app-theme-btn"
-              onClick={() => setPanelOpen(p => !p)}
-              style={{ display: 'flex', alignItems: 'center', gap: 8 }}
-            >
-              <span style={{ width: 12, height: 12, borderRadius: '50%', background: currentAccent.color, display: 'inline-block', flexShrink: 0 }} />
-              {theme === 'dark' ? '🌙 Dark' : '☀️ Light'}
-              <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--text3)' }}>▲</span>
-            </button>
-
-            {/* Floating panel */}
-            {panelOpen && (
-              <div style={{
-                position: 'absolute', bottom: '110%', left: 0, right: 0,
-                background: 'var(--bg2)', border: '1px solid var(--border2)',
-                borderRadius: 'var(--radius)', padding: '14px 16px',
-                zIndex: 200, boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-                animation: 'fadeIn 0.15s ease',
-              }}>
-                {/* Dark / Light toggle */}
-                <p style={{ fontSize: 11, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Mode</p>
-                <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
-                  {['dark', 'light'].map(t => (
-                    <button
-                      key={t}
-                      onClick={() => { if (theme !== t) toggleTheme(); }}
-                      style={{
-                        flex: 1, padding: '7px 0', borderRadius: 'var(--radius-sm)',
-                        border: theme === t ? '1.5px solid var(--accent)' : '1px solid var(--border)',
-                        background: theme === t ? 'var(--accent-dim)' : 'transparent',
-                        color: theme === t ? 'var(--accent)' : 'var(--text2)',
-                        fontFamily: 'var(--font)', fontSize: 12, cursor: 'pointer',
-                        fontWeight: theme === t ? 600 : 400,
-                      }}
-                    >
-                      {t === 'dark' ? '🌙 Dark' : '☀️ Light'}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Accent colors */}
-                <p style={{ fontSize: 11, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Accent</p>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-                  {ACCENTS.map(a => (
-                    <button
-                      key={a.key}
-                      onClick={() => setAccent(a.key)}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 8,
-                        padding: '7px 10px', borderRadius: 'var(--radius-sm)',
-                        border: accent === a.key ? `1.5px solid ${a.color}` : '1px solid var(--border)',
-                        background: accent === a.key ? `${a.color}18` : 'transparent',
-                        color: accent === a.key ? a.color : 'var(--text2)',
-                        fontFamily: 'var(--font)', fontSize: 12, cursor: 'pointer',
-                        fontWeight: accent === a.key ? 600 : 400,
-                      }}
-                    >
-                      <span style={{ width: 10, height: 10, borderRadius: '50%', background: a.color, flexShrink: 0 }} />
-                      {a.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+        <div className="sidebar-bottom">
+          <p className="nav-heading">Your progress</p>
+          <ProgressCard />
+          <p className="nav-heading">Preferences</p>
+          {PREFS.map(navLink)}
+          <Link to="/settings" className="user">
+            <span className="avatar">{initials(data.profile.name)}</span>
+            <span className="user-text">
+              <strong>{data.profile.name || 'Your name'}</strong>
+              <small>{data.profile.subtitle || 'Freelancer'}</small>
+            </span>
+          </Link>
         </div>
       </aside>
 
-      <main className="main">{children}</main>
+      <div className="content">
+        <header className="topbar">
+          <Link to="/overview" className="brand brand-mobile">
+            <span className="brand-mark">v</span>
+          </Link>
+          <div className="crumbs">
+            <span>My workspace</span><span className="sep">/</span>
+            <strong>{current?.label || 'Overview'}</strong>
+          </div>
+          <div className="topbar-controls">
+            <label className="pill-select">
+              <select value={viewMonth} onChange={e => setViewMonth(e.target.value)} aria-label="Month">
+                {months.map(m => <option key={m} value={m}>{monthLabel(m)}</option>)}
+              </select>
+              <Icon name="chevron" size={14} />
+            </label>
+            <label className="pill-select">
+              <select value={data.currency} onChange={e => actions.setCurrency(e.target.value)} aria-label="Display currency">
+                {CURRENCIES.map(c => <option key={c}>{c}</option>)}
+              </select>
+              <Icon name="chevron" size={14} />
+            </label>
+          </div>
+        </header>
 
-      <nav className="bottom-nav">
-        <div className="bottom-nav-inner">
-          {NAV.map(n => (
-            <NavLink key={n.to} to={n.to} className={({ isActive }) => `bottom-nav-item${isActive ? ' active' : ''}`}>
-              {n.icon}<span>{n.label}</span>
-            </NavLink>
-          ))}
-        </div>
+        <main className="page" key={loc.pathname}>
+          <Outlet />
+        </main>
+      </div>
+
+      <nav className="bottom-nav" aria-label="Primary">
+        {MAIN.filter(n => MOBILE_BAR.includes(n.to)).map(n => (
+          <NavLink key={n.to} to={n.to} className={({ isActive }) => `bn-item${isActive ? ' active' : ''}`}>
+            <Icon name={n.icon} size={20} /><span>{n.short || n.label}</span>
+          </NavLink>
+        ))}
+        <button className={`bn-item${MORE.includes(loc.pathname) ? ' active' : ''}`} onClick={() => setMoreOpen(true)}>
+          <Icon name="more" size={20} /><span>More</span>
+        </button>
       </nav>
+
+      {moreOpen && (
+        <div className="sheet-overlay" onMouseDown={e => { if (e.target === e.currentTarget) setMoreOpen(false); }}>
+          <div className="sheet">
+            <div className="sheet-grip" />
+            {all.filter(n => MORE.includes(n.to)).map(n => (
+              <NavLink key={n.to} to={n.to} className="sheet-link" onClick={() => setMoreOpen(false)}>
+                <Icon name={n.icon} /> {n.label}
+              </NavLink>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
